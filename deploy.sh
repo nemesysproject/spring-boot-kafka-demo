@@ -270,17 +270,22 @@ invoke_up() {
             wait_for_port "127.0.0.1" 4200 30 || true
         fi
 
+        local nginx_port="${NGINX_PORT:-80}"
+        wait_for_port "127.0.0.1" "${nginx_port}" 15 || true
+
         print_header "SISTEMA DESPLEGADO Y OPERATIVO"
-        echo -e "  * Portal de Monitoreo (Angular): ${GREEN}http://localhost:4200${NC}"
-        echo -e "  * Swagger UI (API Docs):         ${GREEN}http://localhost:8080/api/v1/swagger-ui.html${NC}"
-        echo -e "  * Actuator / Prometheus:          ${GREEN}http://localhost:8080/api/v1/actuator/prometheus${NC}"
-        echo -e "  * Kafka UI:                       ${GREEN}http://localhost:8089${NC}"
-        echo -e "  * WebSocket STOMP Endpoint:       ${GREEN}ws://localhost:8080/api/v1/ws-notifications${NC}"
-        echo -e "  * SSE Stream en tiempo real:      ${GREEN}http://localhost:8080/api/v1/notifications/stream${NC}"
-        echo -e "  * PostgreSQL Database:            ${GREEN}localhost:5433 (DB: notification_db)${NC}"
+        echo -e "  * [Seguridad] Reverse Proxy NGINX: ${CYAN}http://localhost:${nginx_port}${NC}"
+        echo -e "  * Portal Monitoreo (vía NGINX):    ${GREEN}http://localhost:${nginx_port}${NC}"
+        echo -e "  * Portal Monitoreo (Directo Dev):  ${GREEN}http://localhost:4200${NC}"
+        echo -e "  * Swagger UI (vía NGINX):          ${GREEN}http://localhost:${nginx_port}/api/v1/swagger-ui.html${NC}"
+        echo -e "  * WebSocket STOMP (vía NGINX):     ${GREEN}ws://localhost:${nginx_port}/api/v1/ws-notifications${NC}"
+        echo -e "  * SSE Stream (vía NGINX):          ${GREEN}http://localhost:${nginx_port}/api/v1/notifications/stream${NC}"
+        echo -e "  * Kafka UI:                        ${GREEN}http://localhost:8089 (o http://localhost:${nginx_port}/kafka-ui/)${NC}"
+        echo -e "  * PostgreSQL Database:             ${GREEN}localhost:5433 (DB: notification_db)${NC}"
         echo ""
         print_info "Logs Backend:  tail -f '${LOG_FILE}'"
         print_info "Logs Frontend: tail -f '${FRONTEND_LOG_FILE}'"
+        print_info "Logs Nginx:    ${COMPOSE_CMD} -f '${COMPOSE_FILE}' logs -f nginx"
         print_info "Para detener el sistema ejecuta: ./deploy.sh down"
     fi
 }
@@ -338,7 +343,8 @@ invoke_status() {
     fi
 
     echo -e "\n${CYAN}--- Verificación de Puertos ---${NC}"
-    for port in 5433 29092 8080 8089 4200; do
+    local nginx_port="${NGINX_PORT:-80}"
+    for port in "${nginx_port}" 4200 8080 8089 5433 29092; do
         if (echo > "/dev/tcp/127.0.0.1/${port}") >/dev/null 2>&1; then
             echo -e "Puerto ${port} : ${GREEN}ACTIVO (Escuchando)${NC}"
         else

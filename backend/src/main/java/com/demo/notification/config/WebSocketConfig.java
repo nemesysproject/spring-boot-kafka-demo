@@ -20,14 +20,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Seguridad: Restringe los orígenes permitidos para mitigar CSWSH (Cross-Site WebSocket Hijacking)
+        String[] allowedOrigins = {
+            "http://localhost", "http://localhost:*",
+            "http://127.0.0.1", "http://127.0.0.1:*",
+            "https://localhost", "https://localhost:*"
+        };
+
         // Endpoint STOMP con soporte de SockJS (ideal para clientes web y Angular)
         registry.addEndpoint("/ws-notifications")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS();
 
         // Endpoint WebSocket nativo sin SockJS
         registry.addEndpoint("/ws-notifications")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(allowedOrigins);
     }
 }
 

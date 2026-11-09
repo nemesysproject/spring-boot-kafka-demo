@@ -316,17 +316,22 @@ function Invoke-Up {
             Wait-For-Port -HostName "127.0.0.1" -Port 4200 -TimeoutSeconds 30 | Out-Null
         }
 
+        $NginxPort = if ($env:NGINX_PORT) { [int]$env:NGINX_PORT } else { 80 }
+        Wait-For-Port -HostName "127.0.0.1" -Port $NginxPort -TimeoutSeconds 15 | Out-Null
+
         Print-Header "SISTEMA DESPLEGADO Y OPERATIVO"
-        Write-Host "  * Portal de Monitoreo (Angular): http://localhost:4200" -ForegroundColor Green
-        Write-Host "  * Swagger UI (API Docs):         http://localhost:8080/api/v1/swagger-ui.html" -ForegroundColor Green
-        Write-Host "  * Actuator / Prometheus:          http://localhost:8080/api/v1/actuator/prometheus" -ForegroundColor Green
-        Write-Host "  * Kafka UI:                       http://localhost:8089" -ForegroundColor Green
-        Write-Host "  * WebSocket STOMP Endpoint:       ws://localhost:8080/api/v1/ws-notifications" -ForegroundColor Green
-        Write-Host "  * SSE Stream en tiempo real:      http://localhost:8080/api/v1/notifications/stream" -ForegroundColor Green
-        Write-Host "  * PostgreSQL Database:            localhost:5433 (DB: notification_db)" -ForegroundColor Green
+        Write-Host "  * [Seguridad] Reverse Proxy NGINX: http://localhost:$NginxPort" -ForegroundColor Cyan
+        Write-Host "  * Portal Monitoreo (vía NGINX):    http://localhost:$NginxPort" -ForegroundColor Green
+        Write-Host "  * Portal Monitoreo (Directo Dev):  http://localhost:4200" -ForegroundColor Green
+        Write-Host "  * Swagger UI (vía NGINX):          http://localhost:$NginxPort/api/v1/swagger-ui.html" -ForegroundColor Green
+        Write-Host "  * WebSocket STOMP (vía NGINX):     ws://localhost:$NginxPort/api/v1/ws-notifications" -ForegroundColor Green
+        Write-Host "  * SSE Stream (vía NGINX):          http://localhost:$NginxPort/api/v1/notifications/stream" -ForegroundColor Green
+        Write-Host "  * Kafka UI:                        http://localhost:8089 (o http://localhost:$NginxPort/kafka-ui/)" -ForegroundColor Green
+        Write-Host "  * PostgreSQL Database:             localhost:5433 (DB: notification_db)" -ForegroundColor Green
         Write-Host ""
         Print-Info "Logs Backend:  Get-Content '$LogFile' -Wait -Tail 30"
         Print-Info "Logs Frontend: Get-Content '$FrontendLogFile' -Wait -Tail 30"
+        Print-Info "Logs Nginx:    docker compose -f '$ComposeFile' logs -f nginx"
         Print-Info "Para detener el sistema ejecuta: .\deploy.ps1 down"
     }
 }
@@ -396,7 +401,8 @@ function Invoke-Status {
     }
 
     Write-Host "`n--- Puertos Core ---" -ForegroundColor Cyan
-    @(5433, 29092, 8080, 8089, 4200) | ForEach-Object {
+    $NginxPort = if ($env:NGINX_PORT) { [int]$env:NGINX_PORT } else { 80 }
+    @($NginxPort, 4200, 8080, 8089, 5433, 29092) | ForEach-Object {
         $Conn = Get-NetTCPConnection -LocalPort $_ -State Listen -ErrorAction SilentlyContinue
         if ($Conn) {
             Write-Host "Puerto $_ : ACTIVO (Escuchando)" -ForegroundColor Green

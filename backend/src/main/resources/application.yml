@@ -34,8 +34,8 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        # Permite mapear tipos de clases al serializar objetos complejos JSON
-        spring.json.trusted.packages: "*"
+        # Seguridad: Restringe paquetes confiables para evitar RCE por deserialización
+        spring.json.trusted.packages: "com.demo.notification.model.dto,com.demo.notification.model.entity,java.util,java.lang"
         
     consumer:
       group-id: notification-monitoring-group
@@ -44,8 +44,8 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        # Habilita que el consumidor confíe en las clases deserializadas de JSON
-        spring.json.trusted.packages: "*"
+        # Seguridad: Restringe paquetes confiables para evitar RCE por deserialización
+        spring.json.trusted.packages: "com.demo.notification.model.dto,com.demo.notification.model.entity,java.util,java.lang"
         # Indica explícitamente la clase de destino si manejas un DTO de evento único
         spring.json.value.default.type: com.demo.notification.model.dto.NotificationEvent
 

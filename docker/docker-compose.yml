@@ -67,6 +67,24 @@ services:
     networks:
       - demo-network
 
+  # ---------------------------------------------------------------------------
+  # CAPA PERIMETRAL: Reverse Proxy NGINX & Gateway de Seguridad
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: demo-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - kafka-ui
+    networks:
+      - demo-network
+
 volumes:
   postgres_data:
     driver: local

@@ -9,6 +9,7 @@ Este proyecto es una demostración técnica (Demo) de una arquitectura de micros
 *   **Base de Datos (Persistencia):** PostgreSQL.
 *   **Portal de Monitoreo (Frontend):** Angular 21 (v21.x) con soporte de WebSockets/Server-Sent Events (SSE) para actualización en tiempo real.
 *   **Infraestructura:** Docker & Docker Compose (para despliegue local rápido).
+*   **Reverse Proxy & Perímetro:** NGINX Alpine (Gateway unificado en puerto 80, Rate Limiting, protección Actuator, WebSockets y cabeceras OWASP).
 
 ---
 
@@ -72,7 +73,31 @@ Asegúrate de tener instalado:
 
 ---
 
-## 🏃‍♂️ Guía de Inicio Rápido
+## 🚀 Despliegue Automatizado con un solo comando
+
+Puedes compilar, probar y levantar todo el ecosistema (PostgreSQL, Kafka KRaft, Kafka-UI, NGINX Reverse Proxy, Spring Boot Backend y Portal Angular) con:
+
+```powershell
+# En Windows (PowerShell)
+.\deploy.ps1 up
+```
+
+```bash
+# En Linux / macOS
+./deploy.sh up
+```
+
+### URLs de Acceso Centralizadas (vía Reverse Proxy NGINX):
+* **Portal Web (Frontend Angular):** `http://localhost` (o `http://localhost:4200` directo)
+* **API Swagger UI:** `http://localhost/api/v1/swagger-ui.html`
+* **WebSocket STOMP:** `ws://localhost/api/v1/ws-notifications`
+* **SSE Stream:** `http://localhost/api/v1/notifications/stream`
+* **Kafka UI:** `http://localhost:8089` (o `http://localhost/kafka-ui/`)
+* **Base de Datos PostgreSQL:** `localhost:5433`
+
+---
+
+## 🏃‍♂️ Guía de Inicio Rápido Manual
 
 ### 1. Levantar la Infraestructura (Kafka & Postgres)
 Navega a la carpeta de docker y arranca los contenedores:

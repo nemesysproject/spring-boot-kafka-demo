@@ -14,9 +14,9 @@ import {
   providedIn: 'root'
 })
 export class NotificationService {
-  private readonly baseUrl = 'http://localhost:8080/api/v1';
-  private readonly wsUrl = 'ws://localhost:8080/api/v1/ws-notifications';
-  private readonly sseUrl = `${this.baseUrl}/notifications/stream`;
+  private readonly baseUrl: string;
+  private readonly wsUrl: string;
+  private readonly sseUrl: string;
 
   // Signals para estado reactivo en Angular
   readonly notifications = signal<NotificationItem[]>([]);
@@ -34,6 +34,20 @@ export class NotificationService {
   private newNotification$ = new Subject<NotificationItem>();
 
   constructor(private http: HttpClient) {
+    const isBrowser = typeof window !== 'undefined';
+    // Si se accede a través del reverse proxy Nginx (puerto != 4200) o dominio personalizado
+    if (isBrowser && window.location.port !== '4200') {
+      const isHttps = window.location.protocol === 'https:';
+      const wsProto = isHttps ? 'wss:' : 'ws:';
+      this.baseUrl = `${window.location.origin}/api/v1`;
+      this.wsUrl = `${wsProto}//${window.location.host}/api/v1/ws-notifications`;
+    } else {
+      // Modo desarrollo standalone con ng serve en puerto 4200
+      this.baseUrl = 'http://localhost:8080/api/v1';
+      this.wsUrl = 'ws://localhost:8080/api/v1/ws-notifications';
+    }
+    this.sseUrl = `${this.baseUrl}/notifications/stream`;
+
     this.initRealtimeConnection();
     this.loadInitialData();
 
