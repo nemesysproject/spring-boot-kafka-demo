@@ -1,0 +1,177 @@
+<div class="dashboard-container">
+  <!-- Tarjetas KPI de Métricas -->
+  <div class="metrics-grid">
+    <div class="metric-card total">
+      <div class="metric-icon">📊</div>
+      <div class="metric-info">
+        <span class="metric-label">Total Eventos</span>
+        <span class="metric-value">{{ notificationService.stats().total }}</span>
+      </div>
+      <div class="metric-subtext">Registros acumulados</div>
+    </div>
+
+    <div class="metric-card success">
+      <div class="metric-icon">⚡</div>
+      <div class="metric-info">
+        <span class="metric-label">Procesados (Kafka)</span>
+        <span class="metric-value">{{ notificationService.stats().byStatus['PROCESSED'] || 0 }}</span>
+      </div>
+      <div class="metric-subtext">Persistidos en Postgres</div>
+    </div>
+
+    <div class="metric-card warning">
+      <div class="metric-icon">⏳</div>
+      <div class="metric-info">
+        <span class="metric-label">En Cola / Pendientes</span>
+        <span class="metric-value">{{ notificationService.stats().byStatus['PENDING'] || 0 }}</span>
+      </div>
+      <div class="metric-subtext">En tránsito asíncrono</div>
+    </div>
+
+    <div class="metric-card live-status">
+      <div class="metric-icon">📡</div>
+      <div class="metric-info">
+        <span class="metric-label">Canal en Vivo</span>
+        <span class="metric-value mode-badge">{{ notificationService.connectionMode() }}</span>
+      </div>
+      <div class="metric-subtext">
+        Estado: 
+        <strong [class.text-online]="notificationService.connectionStatus() === 'CONNECTED'">
+          {{ notificationService.connectionStatus() }}
+        </strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila Principal: Simulador y Monitor en Tiempo Real -->
+  <div class="main-split">
+    <!-- Panel Izquierdo: Simulador de Eventos Kafka -->
+    <div class="panel simulator-panel">
+      <div class="panel-header">
+        <h3>🚀 Simulador de Eventos Kafka</h3>
+        <span class="badge">POST /api/v1/notifications</span>
+      </div>
+      
+      <p class="panel-desc">
+        Dispara un evento al backend. El evento viajará a través del topic <code>notification-events</code> de Kafka,
+        será consumido y persistido en PostgreSQL, y emitido en tiempo real a este dashboard vía WebSockets.
+      </p>
+
+      <!-- Plantillas Rápidas -->
+      <div class="template-selector">
+        <span class="sub-label">Plantillas Rápidas:</span>
+        <div class="template-buttons">
+          @for (tmpl of quickTemplates; track tmpl.label) {
+            <button type="button" class="btn-template" (click)="applyTemplate(tmpl)">
+              {{ tmpl.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Formulario -->
+      <form class="event-form" (ngSubmit)="sendEvent()">
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="title">Título del Evento:</label>
+            <input id="title" type="text" [(ngModel)]="simTitle" name="title" required placeholder="Ej. Transacción Aprobada">
+          </div>
+          <div class="form-group flex-1">
+            <label for="type">Tipo / Severidad:</label>
+            <select id="type" [(ngModel)]="simType" name="type">
+              <option value="SUCCESS">SUCCESS</option>
+              <option value="INFO">INFO</option>
+              <option value="WARNING">WARNING</option>
+              <option value="ERROR">ERROR</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="recipient">Destinatario:</label>
+            <input id="recipient" type="email" [(ngModel)]="simRecipient" name="recipient" required placeholder="usuario@empresa.com">
+          </div>
+          <div class="form-group flex-1">
+            <label for="channel">Canal:</label>
+            <select id="channel" [(ngModel)]="simChannel" name="channel">
+              <option value="WEB">WEB</option>
+              <option value="EMAIL">EMAIL</option>
+              <option value="SMS">SMS</option>
+              <option value="PUSH">PUSH</option>
+              <option value="SLACK">SLACK</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="message">Mensaje del Payload:</label>
+          <textarea id="message" rows="3" [(ngModel)]="simMessage" name="message" required placeholder="Cuerpo del mensaje..."></textarea>
+        </div>
+
+        @if (publishSuccessMessage()) {
+          <div class="alert alert-success">
+            ✅ {{ publishSuccessMessage() }}
+          </div>
+        }
+
+        @if (publishErrorMessage()) {
+          <div class="alert alert-danger">
+            ❌ {{ publishErrorMessage() }}
+          </div>
+        }
+
+        <button type="submit" class="btn-submit" [disabled]="isPublishing()">
+          @if (isPublishing()) {
+            <span>Publicando en Kafka...</span>
+          } @else {
+            <span>⚡ Publicar Evento a Kafka</span>
+          }
+        </button>
+      </form>
+    </div>
+
+    <!-- Panel Derecho: Ticker de Actividad en Tiempo Real -->
+    <div class="panel live-feed-panel">
+      <div class="panel-header">
+        <h3>⚡ Feed de Actividad en Vivo</h3>
+        <span class="live-indicator">
+          <span class="pulse-dot"></span> EN VIVO
+        </span>
+      </div>
+
+      <p class="panel-desc">
+        Últimos eventos recibidos en tiempo real por el canal WebSocket/SSE sin refrescar la pantalla:
+      </p>
+
+      <div class="live-list">
+        @if (notificationService.notifications().length === 0) {
+          <div class="empty-state">
+            <p>No hay eventos recientes. Utiliza el simulador para disparar tu primer evento a Kafka.</p>
+          </div>
+        }
+
+        @for (item of notificationService.notifications().slice(0, 8); track item.trackingId) {
+          <div class="feed-item" [ngClass]="item.type.toLowerCase()">
+            <div class="feed-top">
+              <span class="feed-badge" [ngClass]="'badge-' + item.type.toLowerCase()">
+                {{ item.type }}
+              </span>
+              <span class="feed-channel">{{ item.channel }}</span>
+              <span class="feed-status" [ngClass]="item.status.toLowerCase()">{{ item.status }}</span>
+              <span class="feed-time">{{ item.createdAt || item.timestamp | date:'shortTime' }}</span>
+            </div>
+            <div class="feed-title">{{ item.title }}</div>
+            <div class="feed-message">{{ item.message }}</div>
+            <div class="feed-footer">
+              <span class="feed-recipient">👤 {{ item.recipient }}</span>
+              <span class="feed-tracking" title="{{ item.trackingId }}">
+                🔑 {{ item.trackingId.substring(0, 13) }}...
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

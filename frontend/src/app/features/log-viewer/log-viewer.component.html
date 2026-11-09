@@ -1,0 +1,180 @@
+<div class="log-viewer-container">
+  <!-- Barra de Filtros y Búsqueda -->
+  <div class="filter-card">
+    <div class="filter-header">
+      <div>
+        <h2>📋 Visor de Logs & Eventos</h2>
+        <p class="subtitle">Historial de mensajes procesados por Kafka y persistidos en PostgreSQL</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn-refresh" (click)="refresh()">
+          🔄 Actualizar
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-controls">
+      <!-- Campo de Búsqueda -->
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          [ngModel]="searchQuery()" 
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Buscar por título, mensaje, tracking ID o destinatario...">
+      </div>
+
+      <!-- Filtro Tipo -->
+      <div class="select-group">
+        <label>Tipo:</label>
+        <select [ngModel]="selectedType()" (ngModelChange)="selectedType.set($event)">
+          <option value="ALL">Todos los tipos</option>
+          <option value="INFO">INFO</option>
+          <option value="SUCCESS">SUCCESS</option>
+          <option value="WARNING">WARNING</option>
+          <option value="ERROR">ERROR</option>
+        </select>
+      </div>
+
+      <!-- Filtro Canal -->
+      <div class="select-group">
+        <label>Canal:</label>
+        <select [ngModel]="selectedChannel()" (ngModelChange)="selectedChannel.set($event)">
+          <option value="ALL">Todos los canales</option>
+          <option value="WEB">WEB</option>
+          <option value="EMAIL">EMAIL</option>
+          <option value="SMS">SMS</option>
+          <option value="PUSH">PUSH</option>
+          <option value="SLACK">SLACK</option>
+        </select>
+      </div>
+
+      <!-- Filtro Estado -->
+      <div class="select-group">
+        <label>Estado:</label>
+        <select [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)">
+          <option value="ALL">Todos los estados</option>
+          <option value="PROCESSED">PROCESSED</option>
+          <option value="PENDING">PENDING</option>
+          <option value="FAILED">FAILED</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-summary">
+      Mostrando <strong>{{ filteredNotifications().length }}</strong> de {{ notificationService.notifications().length }} notificaciones registradas
+    </div>
+  </div>
+
+  <!-- Tabla de Logs -->
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Canal</th>
+            <th>Título & Mensaje</th>
+            <th>Destinatario</th>
+            <th>Estado</th>
+            <th>Tracking ID</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (filteredNotifications().length === 0) {
+            <tr>
+              <td colspan="8" class="text-center empty-cell">
+                No se encontraron eventos con los filtros seleccionados.
+              </td>
+            </tr>
+          }
+
+          @for (item of filteredNotifications(); track item.trackingId) {
+            <tr [ngClass]="'row-' + item.type.toLowerCase()">
+              <td>
+                <span class="badge" [ngClass]="'badge-' + item.type.toLowerCase()">
+                  {{ item.type }}
+                </span>
+              </td>
+              <td>
+                <span class="channel-pill">{{ item.channel }}</span>
+              </td>
+              <td class="col-content">
+                <div class="title-text">{{ item.title }}</div>
+                <div class="message-text">{{ item.message }}</div>
+              </td>
+              <td>
+                <span class="recipient-tag">👤 {{ item.recipient }}</span>
+              </td>
+              <td>
+                <span class="status-pill" [ngClass]="'status-' + item.status.toLowerCase()">
+                  {{ item.status }}
+                </span>
+              </td>
+              <td>
+                <code class="tracking-code" title="{{ item.trackingId }}">
+                  {{ item.trackingId.substring(0, 10) }}...
+                </code>
+              </td>
+              <td class="date-cell">
+                {{ item.createdAt || item.timestamp | date:'short' }}
+              </td>
+              <td>
+                <button type="button" class="btn-detail" (click)="openDetail(item)">
+                  Detalle
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal de Detalle JSON -->
+  @if (selectedItem(); as current) {
+    <div class="modal-backdrop" (click)="closeDetail()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Detalle de la Notificación</h3>
+          <button type="button" class="btn-close" (click)="closeDetail()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="detail-grid">
+            <div><strong>Tracking ID:</strong> <code>{{ current.trackingId }}</code></div>
+            <div><strong>Estado:</strong> <span class="status-pill" [ngClass]="'status-' + current.status.toLowerCase()">{{ current.status }}</span></div>
+            <div><strong>Tipo:</strong> <span class="badge" [ngClass]="'badge-' + current.type.toLowerCase()">{{ current.type }}</span></div>
+            <div><strong>Canal:</strong> <span class="channel-pill">{{ current.channel }}</span></div>
+            <div><strong>Destinatario:</strong> {{ current.recipient }}</div>
+            <div><strong>Fecha Creación:</strong> {{ current.createdAt || current.timestamp | date:'medium' }}</div>
+          </div>
+
+          <div class="detail-section">
+            <h4>Título</h4>
+            <p>{{ current.title }}</p>
+          </div>
+
+          <div class="detail-section">
+            <h4>Mensaje Completo</h4>
+            <p class="message-box">{{ current.message }}</p>
+          </div>
+
+          @if (current.metadata) {
+            <div class="detail-section">
+              <h4>Metadatos (JSON)</h4>
+              <pre class="json-box">{{ current.metadata | json }}</pre>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeDetail()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+

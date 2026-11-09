@@ -1,0 +1,37 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Maven Start Up Shell Script
+# ----------------------------------------------------------------------------
+
+export MAVEN_PROJECTBASEDIR="${MAVEN_BASEDIR:-$(pwd)}"
+PRG="$0"
+while [ -h "$PRG" ]; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "$PRG"`/"$link"
+  fi
+done
+SAVED="`pwd`"
+cd "`dirname \"$PRG\"`" >/dev/null
+APP_HOME="`pwd -P`"
+cd "$SAVED" >/dev/null
+
+JAVACMD="${JAVA_HOME}/bin/java"
+if [ ! -x "$JAVACMD" ]; then
+  JAVACMD=java
+fi
+
+WRAPPER_JAR="$APP_HOME/.mvn/wrapper/maven-wrapper.jar"
+if [ ! -r "$WRAPPER_JAR" ]; then
+  echo "Downloading Maven Wrapper JAR..."
+  curl -fsSL https://repo.maven.apache.org/repo2/org/apache/maven/wrapper/maven-wrapper/3.3.2/maven-wrapper-3.3.2.jar -o "$WRAPPER_JAR" || wget -q https://repo.maven.apache.org/repo2/org/apache/maven/wrapper/maven-wrapper/3.3.2/maven-wrapper-3.3.2.jar -O "$WRAPPER_JAR"
+fi
+
+exec "$JAVACMD" \
+  -Dmaven.multiModuleProjectDirectory="$MAVEN_PROJECTBASEDIR" \
+  -jar "$WRAPPER_JAR" \
+  "$@"
+

@@ -1,0 +1,99 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: notification-demo-service
+
+  # ---------------------------------------------------------------------------
+  # CONFIGURACIÓN DE CAPA DE DATOS (PostgreSQL)
+  # ---------------------------------------------------------------------------
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/notification_db}
+    username: ${SPRING_DATASOURCE_USERNAME:demo_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:demo_password}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update # Crea y actualiza las tablas automáticamente en desarrollo
+    show-sql: true     # Muestra las consultas SQL en la consola para depuración
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ---------------------------------------------------------------------------
+  # CONFIGURACIÓN DE MENSAJERÍA (Apache Kafka)
+  # ---------------------------------------------------------------------------
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # Permite mapear tipos de clases al serializar objetos complejos JSON
+        spring.json.trusted.packages: "*"
+        
+    consumer:
+      group-id: notification-monitoring-group
+      # En caso de no haber un offset previo, lee desde el inicio del topic
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # Habilita que el consumidor confíe en las clases deserializadas de JSON
+        spring.json.trusted.packages: "*"
+        # Indica explícitamente la clase de destino si manejas un DTO de evento único
+        spring.json.value.default.type: com.demo.notification.model.dto.NotificationEvent
+
+# ---------------------------------------------------------------------------
+# CONFIGURACIÓN DE PARÁMETROS DEL NEGOCIO / TOPICS
+# ---------------------------------------------------------------------------
+app:
+  kafka:
+    topic:
+      notifications: notification-events
+      partitions: 3
+      replication-factor: 1
+
+# ---------------------------------------------------------------------------
+# CONFIGURACIÓN DE MONITOREO Y MÉTRICAS (Spring Boot Actuator & Prometheus)
+# ---------------------------------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        notifications.processing.timer: true
+
+# ---------------------------------------------------------------------------
+# CONFIGURACIÓN DE DOCUMENTACIÓN OPENAPI / SWAGGER
+# ---------------------------------------------------------------------------
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# ---------------------------------------------------------------------------
+# CONFIGURACIÓN DE LOGS (Opcional para desarrollo)
+# ---------------------------------------------------------------------------
+logging:
+  level:
+    root: INFO
+    com.demo.notification: DEBUG
+    org.springframework.kafka: INFO
+    org.hibernate.SQL: DEBUG

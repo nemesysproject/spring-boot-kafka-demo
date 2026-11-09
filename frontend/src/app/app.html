@@ -1,0 +1,66 @@
+<div class="app-layout">
+  <!-- Barra de Navegación Superior -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="logo-circle">⚡</div>
+      <div class="brand-text">
+        <h1>Kafka & Spring Boot Demo</h1>
+        <span class="brand-subtitle">Portal de Monitoreo y Mensajería en Tiempo Real</span>
+      </div>
+    </div>
+
+    <!-- Pestañas de Navegación -->
+    <nav class="nav-tabs">
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab() === 'DASHBOARD'" 
+        (click)="setActiveTab('DASHBOARD')">
+        📊 Dashboard en Vivo
+      </button>
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab() === 'LOGS'" 
+        (click)="setActiveTab('LOGS')">
+        📋 Historial de Logs ({{ notificationService.notifications().length }})
+      </button>
+    </nav>
+
+    <!-- Estado de Conexión & Enlaces a Herramientas -->
+    <div class="header-tools">
+      <div class="connection-status" [ngClass]="notificationService.connectionStatus().toLowerCase()">
+        <span class="status-indicator"></span>
+        <span class="status-mode">{{ notificationService.connectionMode() }}</span>
+        <span class="status-label">{{ notificationService.connectionStatus() }}</span>
+      </div>
+
+      <div class="tool-links">
+        <a href="http://localhost:8080/api/v1/swagger-ui.html" target="_blank" class="tool-link" title="OpenAPI / Swagger UI">
+          Swagger
+        </a>
+        <a href="http://localhost:8089" target="_blank" class="tool-link" title="Consola de Apache Kafka UI">
+          Kafka UI
+        </a>
+        <a href="http://localhost:8080/api/v1/actuator/prometheus" target="_blank" class="tool-link" title="Métricas Prometheus">
+          Actuator
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal de Contenido -->
+  <main class="app-main">
+    @if (activeTab() === 'DASHBOARD') {
+      <app-dashboard />
+    } @else {
+      <app-log-viewer />
+    }
+  </main>
+
+  <!-- Pie de Página -->
+  <footer class="app-footer">
+    <span>Spring Boot 3 + Apache Kafka + PostgreSQL + WebSockets + Angular Demo</span>
+    <span>Backend API: <code>http://localhost:8080/api/v1</code></span>
+  </footer>
+</div>
