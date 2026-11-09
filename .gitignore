@@ -7,8 +7,13 @@
 # Compiled class file
 *.class
 
-# Log file
+# Process IDs and runtime state
+*.pid
+**/*.pid
+
+# Log files
 *.log
+**/*.log
 
 # Package Files #
 *.jar

@@ -4,6 +4,10 @@
 !.env.example
 *.env
 
+# Process IDs and logs
+*.pid
+*.log
+
 HELP.md
 target/
 build/
